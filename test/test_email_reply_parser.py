@@ -127,6 +127,11 @@ class EmailMessageTest(unittest.TestCase):
             self.assertEqual('This is a test for inbox replying to a github message.',
                              EmailReplyParser.parse_reply(f.read()))
 
+    def test_reply_from_gmail_pt(self):
+        with open('test/emails/email_gmail_pt.txt') as f:
+            self.assertEqual('Esta é uma resposta para mensagens github.',
+                             EmailReplyParser.parse_reply(f.read()))
+
     def test_parse_out_just_top_for_outlook_reply(self):
         with open('test/emails/email_2_1.txt') as f:
             self.assertEqual("Outlook with a reply", EmailReplyParser.parse_reply(f.read()))
@@ -134,6 +139,10 @@ class EmailMessageTest(unittest.TestCase):
     def test_parse_out_just_top_for_outlook_with_reply_directly_above_line(self):
         with open('test/emails/email_2_2.txt') as f:
             self.assertEqual("Outlook with a reply directly above line", EmailReplyParser.parse_reply(f.read()))
+
+    def test_parse_out_just_top_for_outlook_with_reply_directly_above_line_ptBr(self):
+        with open('test/emails/email_2_2_ptBr.txt') as f:
+            self.assertEqual("um novo dia testando !! navegador!", EmailReplyParser.parse_reply(f.read()))
 
     def test_parse_out_just_top_for_outlook_with_unusual_headers_format(self):
         with open('test/emails/email_2_3.txt') as f:

@@ -36,10 +36,10 @@ class EmailMessage(object):
     """ An email message represents a parsed email body.
     """
 
-    SIG_REGEX = re.compile(r'(--|__|-\w)|(^Sent from my (\w+\s*){1,3})')
+    SIG_REGEX = re.compile(r'(--|__|-\w)|(^Sent from my (\w+\s*){1,3})|(^Enviado do (\w+\s*){1,3})')
     QUOTE_HDR_REGEX = re.compile('On.*wrote:$')
     QUOTED_REGEX = re.compile(r'(>+)')
-    HEADER_REGEX = re.compile(r'^\*?(From|Sent|To|Subject):\*? .+')
+    HEADER_REGEX = re.compile(r'^\*?(From|Sent|To|Subject):\*? .+|\*?(De|Enviado|Para|Assunto):\*? .+')
     _MULTI_QUOTE_HDR_REGEX = r'(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)'
     MULTI_QUOTE_HDR_REGEX = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL | re.MULTILINE)
     MULTI_QUOTE_HDR_REGEX_MULTILINE = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL)
