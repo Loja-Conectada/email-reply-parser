@@ -68,6 +68,25 @@ class EmailMessageTest(unittest.TestCase):
             [f.hidden for f in message.fragments]
         )
 
+    def test_reads_inline_replies_ptBr(self):
+        message = self.get_email('email_1_8_ptBr')
+        self.assertEqual(8, len(message.fragments))
+
+        self.assertEqual(
+            [False, True, False, True, False, True, False, False],
+            [f.quoted for f in message.fragments]
+        )
+
+        self.assertEqual(
+            [False, False, False, False, False, False, False, True],
+            [f.signature for f in message.fragments]
+        )
+
+        self.assertEqual(
+            [False, False, False, False, False, True, True, True],
+            [f.hidden for f in message.fragments]
+        )
+
     def test_reads_top_post(self):
         message = self.get_email('email_1_3')
 
@@ -84,6 +103,13 @@ class EmailMessageTest(unittest.TestCase):
         self.assertTrue('Awesome' in message.fragments[0].content)
         self.assertTrue('On' in message.fragments[1].content)
         self.assertTrue('Loader' in message.fragments[1].content)
+
+    def test_captures_date_string_ptBr(self):
+        message = self.get_email('email_1_4_ptBr')
+
+        self.assertTrue('extinto' in message.fragments[0].content)
+        self.assertTrue('Em' in message.fragments[0].content)
+        self.assertTrue('Parece' in message.fragments[1].content)
 
     def test_complex_body_with_one_fragment(self):
         message = self.get_email('email_1_5')
@@ -127,10 +153,14 @@ class EmailMessageTest(unittest.TestCase):
             self.assertEqual('This is a test for inbox replying to a github message.',
                              EmailReplyParser.parse_reply(f.read()))
 
-    def test_reply_from_gmail_pt(self):
-        with open('test/emails/email_gmail_pt.txt') as f:
+    def test_reply_from_gmail_ptBr(self):
+        with open('test/emails/email_gmail_ptBr.txt') as f:
             self.assertEqual('Esta é uma resposta para mensagens github.',
                              EmailReplyParser.parse_reply(f.read()))
+        with open('test/emails/email_gmail_ptBr.txt') as f:
+            self.assertIn('Em qua., 18 de mai. de 2016 às 11:10 Someone',EmailReplyParser.read(f.read()).fragments[1].content)
+        with open('test/emails/email_gmail_ptBr.txt') as f:
+            self.assertIn('Esta é uma resposta para mensagens github.',EmailReplyParser.read(f.read()).fragments[0].content)
 
     def test_parse_out_just_top_for_outlook_reply(self):
         with open('test/emails/email_2_1.txt') as f:
@@ -143,6 +173,12 @@ class EmailMessageTest(unittest.TestCase):
     def test_parse_out_just_top_for_outlook_with_reply_directly_above_line_ptBr(self):
         with open('test/emails/email_2_2_ptBr.txt') as f:
             self.assertEqual("um novo dia testando !! navegador!", EmailReplyParser.parse_reply(f.read()))
+        with open('test/emails/email_2_2_ptBr.txt') as f:
+            self.assertIn("um novo dia testando", EmailReplyParser.read(f.read()).fragments[0].content)
+        with open('test/emails/email_2_2_ptBr.txt') as f:
+            self.assertIn("Outlook", EmailReplyParser.read(f.read()).fragments[1].content)
+        with open('test/emails/email_2_2_ptBr.txt') as f:
+            self.assertIn("De: Store <who@whois.testing.com.br>", EmailReplyParser.read(f.read()).fragments[3].content)
 
     def test_parse_out_just_top_for_outlook_with_unusual_headers_format(self):
         with open('test/emails/email_2_3.txt') as f:

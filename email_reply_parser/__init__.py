@@ -37,12 +37,15 @@ class EmailMessage(object):
     """
 
     SIG_REGEX = re.compile(r'(--|__|-\w)|(^Sent from my (\w+\s*){1,3})|(^Enviado do (\w+\s*){1,3})')
-    QUOTE_HDR_REGEX = re.compile('On.*wrote:$')
+    QUOTE_HDR_REGEX = re.compile(r'(On.*wrote:$)|(Em.*wrote:$)')
     QUOTED_REGEX = re.compile(r'(>+)')
     HEADER_REGEX = re.compile(r'^\*?(From|Sent|To|Subject):\*? .+|\*?(De|Enviado|Para|Assunto):\*? .+')
     _MULTI_QUOTE_HDR_REGEX = r'(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)'
-    MULTI_QUOTE_HDR_REGEX = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL | re.MULTILINE)
+    _PT_MULTI_QUOTE_HDR_REGEX = r'(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)'
+    # MULTI_QUOTE_HDR_REGEX = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL | re.MULTILINE)
+    MULTI_QUOTE_HDR_REGEX = re.compile(r'(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)|(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)', re.DOTALL | re.MULTILINE)
     MULTI_QUOTE_HDR_REGEX_MULTILINE = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL)
+    MULTI_QUOTE_HDR_REGEX_MULTILINE_PT = re.compile(_PT_MULTI_QUOTE_HDR_REGEX, re.DOTALL)
 
     def __init__(self, text):
         self.fragments = []
@@ -60,8 +63,11 @@ class EmailMessage(object):
         self.found_visible = False
 
         is_multi_quote_header = self.MULTI_QUOTE_HDR_REGEX_MULTILINE.search(self.text)
+        is_multi_quote_header_pt = self.MULTI_QUOTE_HDR_REGEX_MULTILINE_PT.search(self.text)
         if is_multi_quote_header:
             self.text = self.MULTI_QUOTE_HDR_REGEX.sub(is_multi_quote_header.groups()[0].replace('\n', ''), self.text)
+        elif is_multi_quote_header_pt:
+            self.text = self.MULTI_QUOTE_HDR_REGEX.sub(is_multi_quote_header_pt.groups()[0].replace('\n', ''), self.text)
 
         # Fix any outlook style replies, with the reply immediately above the signature boundary line
         #   See email_2_2.txt for an example
