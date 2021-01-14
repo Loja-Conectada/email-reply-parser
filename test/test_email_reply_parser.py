@@ -1,3 +1,4 @@
+from email_reply_parser import EmailReplyParser
 import os
 import sys
 import unittest
@@ -5,43 +6,36 @@ import re
 
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from email_reply_parser import EmailReplyParser
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 class EmailMessageTest(unittest.TestCase):
     def test_simple_body(self):
-        message = self.get_email('email_1_1')
+        message = self.get_email("email_1_1")
 
         self.assertEqual(3, len(message.fragments))
-        self.assertEqual(
-            [False, True, True],
-            [f.signature for f in message.fragments]
-        )
-        self.assertEqual(
-            [False, True, True],
-            [f.hidden for f in message.fragments]
-        )
+        self.assertEqual([False, True, True], [f.signature for f in message.fragments])
+        self.assertEqual([False, True, True], [f.hidden for f in message.fragments])
         self.assertTrue("folks" in message.fragments[0].content)
         self.assertTrue("riak-users" in message.fragments[2].content)
 
     def test_reads_bottom_message(self):
-        message = self.get_email('email_1_2')
+        message = self.get_email("email_1_2")
 
         self.assertEqual(6, len(message.fragments))
         self.assertEqual(
             [False, True, False, True, False, False],
-            [f.quoted for f in message.fragments]
+            [f.quoted for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, False, False, True],
-            [f.signature for f in message.fragments]
+            [f.signature for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, True, True, True],
-            [f.hidden for f in message.fragments]
+            [f.hidden for f in message.fragments],
         )
 
         self.assertTrue("Hi," in message.fragments[0].content)
@@ -50,179 +44,216 @@ class EmailMessageTest(unittest.TestCase):
         self.assertTrue("riak-users" in message.fragments[5].content)
 
     def test_reads_inline_replies(self):
-        message = self.get_email('email_1_8')
+        message = self.get_email("email_1_8")
         self.assertEqual(7, len(message.fragments))
 
         self.assertEqual(
             [True, False, True, False, True, False, False],
-            [f.quoted for f in message.fragments]
+            [f.quoted for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, False, False, False, True],
-            [f.signature for f in message.fragments]
+            [f.signature for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, False, True, True, True],
-            [f.hidden for f in message.fragments]
+            [f.hidden for f in message.fragments],
         )
 
     def test_reads_inline_replies_ptBr(self):
-        message = self.get_email('email_1_8_ptBr')
+        message = self.get_email("email_1_8_ptBr")
+
         self.assertEqual(8, len(message.fragments))
 
         self.assertEqual(
             [False, True, False, True, False, True, False, False],
-            [f.quoted for f in message.fragments]
+            [f.quoted for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, False, False, False, False, True],
-            [f.signature for f in message.fragments]
+            [f.signature for f in message.fragments],
         )
 
         self.assertEqual(
             [False, False, False, False, False, True, True, True],
-            [f.hidden for f in message.fragments]
+            [f.hidden for f in message.fragments],
         )
 
     def test_reads_top_post(self):
-        message = self.get_email('email_1_3')
+        message = self.get_email("email_1_3")
 
         self.assertEqual(5, len(message.fragments))
 
     def test_multiline_reply_headers(self):
-        message = self.get_email('email_1_6')
-        self.assertTrue('I get' in message.fragments[0].content)
-        self.assertTrue('On' in message.fragments[1].content)
+        message = self.get_email("email_1_6")
+        self.assertTrue("I get" in message.fragments[0].content)
+        self.assertTrue("On" in message.fragments[1].content)
 
     def test_captures_date_string(self):
-        message = self.get_email('email_1_4')
-
-        self.assertTrue('Awesome' in message.fragments[0].content)
-        self.assertTrue('On' in message.fragments[1].content)
-        self.assertTrue('Loader' in message.fragments[1].content)
+        message = self.get_email("email_1_4")
+        self.assertTrue("Awesome" in message.fragments[0].content)
+        self.assertTrue("On" in message.fragments[1].content)
+        self.assertTrue("Loader" in message.fragments[1].content)
 
     def test_captures_date_string_ptBr(self):
-        message = self.get_email('email_1_4_ptBr')
+        message = self.get_email("email_1_4_ptBr")
 
-        self.assertTrue('extinto' in message.fragments[0].content)
-        self.assertTrue('Em' in message.fragments[0].content)
-        self.assertTrue('Parece' in message.fragments[1].content)
+        self.assertFalse("funcionando" in message.fragments[0].content)
+        self.assertTrue("Incrivel" in message.fragments[0].content)
+        self.assertTrue("extinto" in message.fragments[1].content)
 
     def test_complex_body_with_one_fragment(self):
-        message = self.get_email('email_1_5')
+        message = self.get_email("email_1_5")
 
         self.assertEqual(1, len(message.fragments))
 
     def test_verify_reads_signature_correct(self):
-        message = self.get_email('correct_sig')
+        message = self.get_email("correct_sig")
         self.assertEqual(2, len(message.fragments))
 
-        self.assertEqual(
-            [False, False],
-            [f.quoted for f in message.fragments]
-        )
+        self.assertEqual([False, False], [f.quoted for f in message.fragments])
 
-        self.assertEqual(
-            [False, True],
-            [f.signature for f in message.fragments]
-        )
+        self.assertEqual([False, True], [f.signature for f in message.fragments])
 
-        self.assertEqual(
-            [False, True],
-            [f.hidden for f in message.fragments]
-        )
+        self.assertEqual([False, True], [f.hidden for f in message.fragments])
 
-        self.assertTrue('--' in message.fragments[1].content)
+        self.assertTrue("--" in message.fragments[1].content)
 
     def test_deals_with_windows_line_endings(self):
-        msg = self.get_email('email_1_7')
+        msg = self.get_email("email_1_7")
 
-        self.assertTrue(':+1:' in msg.fragments[0].content)
-        self.assertTrue('On' in msg.fragments[1].content)
-        self.assertTrue('Steps 0-2' in msg.fragments[1].content)
+        self.assertTrue(":+1:" in msg.fragments[0].content)
+        self.assertTrue("On" in msg.fragments[1].content)
+        self.assertTrue("Steps 0-2" in msg.fragments[1].content)
 
     def test_reply_is_parsed(self):
-        message = self.get_email('email_1_2')
+        message = self.get_email("email_1_2")
         self.assertTrue("You can list the keys for the bucket" in message.reply)
 
     def test_reply_from_gmail(self):
-        with open('test/emails/email_gmail.txt') as f:
-            self.assertEqual('This is a test for inbox replying to a github message.',
-                             EmailReplyParser.parse_reply(f.read()))
+        with open("test/emails/email_gmail.txt") as f:
+            self.assertEqual(
+                "This is a test for inbox replying to a github message.",
+                EmailReplyParser.parse_reply(f.read()),
+            )
 
     def test_reply_from_gmail_ptBr(self):
-        with open('test/emails/email_gmail_ptBr.txt') as f:
-            self.assertEqual('Esta é uma resposta para mensagens github.',
-                             EmailReplyParser.parse_reply(f.read()))
-        with open('test/emails/email_gmail_ptBr.txt') as f:
-            self.assertIn('Em qua., 18 de mai. de 2016 às 11:10 Someone',EmailReplyParser.read(f.read()).fragments[1].content)
-        with open('test/emails/email_gmail_ptBr.txt') as f:
-            self.assertIn('Esta é uma resposta para mensagens github.',EmailReplyParser.read(f.read()).fragments[0].content)
+        with open("test/emails/email_gmail_ptBr.txt") as f:
+            self.assertEqual(
+                "Esta é uma resposta para mensagens github.",
+                EmailReplyParser.parse_reply(f.read()),
+            )
+        with open("test/emails/email_gmail_ptBr.txt") as f:
+            self.assertIn(
+                "Em qua., 18 de mai. de 2016 às 11:10 Someone",
+                EmailReplyParser.read(f.read()).fragments[1].content,
+            )
+        with open("test/emails/email_gmail_ptBr.txt") as f:
+            self.assertIn(
+                "Esta é uma resposta para mensagens github.",
+                EmailReplyParser.read(f.read()).fragments[0].content,
+            )
+
+    def test_reply_from_gmail_2_ptBr(self):
+        with open("test/emails/email_gmail2_ptBr.txt") as f:
+            self.assertIn(
+                "entendi, muito obrigado pela informação, vou verificar aqui se tenho outras opções.",
+                EmailReplyParser.parse_reply(f.read()),
+            )
+        with open("test/emails/email_gmail2_ptBr.txt") as f:
+            self.assertIn(
+                "Em sex., 18 de dez. de 2020 às 14:12",
+                EmailReplyParser.read(f.read()).fragments[1].content,
+            )
+        with open("test/emails/email_gmail2_ptBr.txt") as f:
+            self.assertIn(
+                "Já viu o link desse anuncio?",
+                EmailReplyParser.read(f.read()).fragments[0].content,
+            )
 
     def test_parse_out_just_top_for_outlook_reply(self):
-        with open('test/emails/email_2_1.txt') as f:
-            self.assertEqual("Outlook with a reply", EmailReplyParser.parse_reply(f.read()))
+        with open("test/emails/email_2_1.txt") as f:
+            self.assertEqual(
+                "Outlook with a reply", EmailReplyParser.parse_reply(f.read())
+            )
 
     def test_parse_out_just_top_for_outlook_with_reply_directly_above_line(self):
-        with open('test/emails/email_2_2.txt') as f:
-            self.assertEqual("Outlook with a reply directly above line", EmailReplyParser.parse_reply(f.read()))
+        with open("test/emails/email_2_2.txt") as f:
+            self.assertEqual(
+                "Outlook with a reply directly above line",
+                EmailReplyParser.parse_reply(f.read()),
+            )
 
     def test_parse_out_just_top_for_outlook_with_reply_directly_above_line_ptBr(self):
-        with open('test/emails/email_2_2_ptBr.txt') as f:
-            self.assertEqual("um novo dia testando !! navegador!", EmailReplyParser.parse_reply(f.read()))
-        with open('test/emails/email_2_2_ptBr.txt') as f:
-            self.assertIn("um novo dia testando", EmailReplyParser.read(f.read()).fragments[0].content)
-        with open('test/emails/email_2_2_ptBr.txt') as f:
-            self.assertIn("Outlook", EmailReplyParser.read(f.read()).fragments[1].content)
-        with open('test/emails/email_2_2_ptBr.txt') as f:
-            self.assertIn("De: Store <who@whois.testing.com.br>", EmailReplyParser.read(f.read()).fragments[3].content)
+        with open("test/emails/email_2_2_ptBr.txt") as f:
+            self.assertEqual(
+                "um novo dia testando !! navegador!",
+                EmailReplyParser.parse_reply(f.read()),
+            )
+        with open("test/emails/email_2_2_ptBr.txt") as f:
+            self.assertIn(
+                "um novo dia testando",
+                EmailReplyParser.read(f.read()).fragments[0].content,
+            )
+        with open("test/emails/email_2_2_ptBr.txt") as f:
+            self.assertIn(
+                "Outlook", EmailReplyParser.read(f.read()).fragments[1].content
+            )
+        with open("test/emails/email_2_2_ptBr.txt") as f:
+            self.assertIn(
+                "De: Store <who@whois.testing.com.br>",
+                EmailReplyParser.read(f.read()).fragments[3].content,
+            )
 
     def test_parse_out_just_top_for_outlook_with_unusual_headers_format(self):
-        with open('test/emails/email_2_3.txt') as f:
+        with open("test/emails/email_2_3.txt") as f:
             self.assertEqual(
                 "Outlook with a reply above headers using unusual format",
-                EmailReplyParser.parse_reply(f.read()))
+                EmailReplyParser.parse_reply(f.read()),
+            )
 
     def test_sent_from_iphone(self):
-        with open('test/emails/email_iPhone.txt') as email:
-            self.assertTrue("Sent from my iPhone" not in EmailReplyParser.parse_reply(email.read()))
+        with open("test/emails/email_iPhone.txt") as email:
+            self.assertTrue(
+                "Sent from my iPhone" not in EmailReplyParser.parse_reply(email.read())
+            )
 
     def test_email_one_is_not_on(self):
-        with open('test/emails/email_one_is_not_on.txt') as email:
+        with open("test/emails/email_one_is_not_on.txt") as email:
             self.assertTrue(
-                "On Oct 1, 2012, at 11:55 PM, Dave Tapley wrote:" not in EmailReplyParser.parse_reply(email.read()))
+                "On Oct 1, 2012, at 11:55 PM, Dave Tapley wrote:"
+                not in EmailReplyParser.parse_reply(email.read())
+            )
 
     def test_partial_quote_header(self):
-        message = self.get_email('email_partial_quote_header')
+        message = self.get_email("email_partial_quote_header")
         self.assertTrue("On your remote host you can run:" in message.reply)
         self.assertTrue("telnet 127.0.0.1 52698" in message.reply)
         self.assertTrue("This should connect to TextMate" in message.reply)
 
     def test_email_headers_no_delimiter(self):
-        message = self.get_email('email_headers_no_delimiter')
-        self.assertEqual(message.reply.strip(), 'And another reply!')
+        message = self.get_email("email_headers_no_delimiter")
+        self.assertEqual(message.reply.strip(), "And another reply!")
 
     def test_multiple_on(self):
         message = self.get_email("greedy_on")
-        self.assertTrue(re.match('^On your remote host', message.fragments[0].content))
-        self.assertTrue(re.match('^On 9 Jan 2014', message.fragments[1].content))
+        self.assertTrue(re.match("^On your remote host", message.fragments[0].content))
+        self.assertTrue(re.match("^On 9 Jan 2014", message.fragments[1].content))
 
         self.assertEqual(
-            [False, True, False],
-            [fragment.quoted for fragment in message.fragments]
+            [False, True, False], [fragment.quoted for fragment in message.fragments]
         )
 
         self.assertEqual(
             [False, False, False],
-            [fragment.signature for fragment in message.fragments]
+            [fragment.signature for fragment in message.fragments],
         )
 
         self.assertEqual(
-            [False, True, True],
-            [fragment.hidden for fragment in message.fragments]
+            [False, True, True], [fragment.hidden for fragment in message.fragments]
         )
 
     def test_pathological_emails(self):
@@ -231,16 +262,16 @@ class EmailMessageTest(unittest.TestCase):
         self.assertTrue(time.time() - t0 < 1, "Took too long")
 
     def test_doesnt_remove_signature_delimiter_in_mid_line(self):
-        message = self.get_email('email_sig_delimiter_in_middle_of_line')
+        message = self.get_email("email_sig_delimiter_in_middle_of_line")
         self.assertEqual(1, len(message.fragments))
 
     def get_email(self, name):
         """ Return EmailMessage instance
         """
-        with open('test/emails/%s.txt' % name) as f:
+        with open("test/emails/%s.txt" % name) as f:
             text = f.read()
         return EmailReplyParser.read(text)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
