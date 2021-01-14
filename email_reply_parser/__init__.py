@@ -8,72 +8,88 @@ import re
 
 
 class EmailReplyParser(object):
-    """ Represents a email message that is parsed.
-    """
+    """Represents a email message that is parsed."""
 
     @staticmethod
     def read(text):
-        """ Factory method that splits email into list of fragments
+        """Factory method that splits email into list of fragments
 
-            text - A string email body
+        text - A string email body
 
-            Returns an EmailMessage instance
+        Returns an EmailMessage instance
         """
         return EmailMessage(text).read()
 
     @staticmethod
     def parse_reply(text):
-        """ Provides the reply portion of email.
+        """Provides the reply portion of email.
 
-            text - A string email body
+        text - A string email body
 
-            Returns reply body message
+        Returns reply body message
         """
         return EmailReplyParser.read(text).reply
 
 
 class EmailMessage(object):
-    """ An email message represents a parsed email body.
-    """
+    """An email message represents a parsed email body."""
 
-    SIG_REGEX = re.compile(r'(--|__|-\w)|(^Sent from my (\w+\s*){1,3})|(^Enviado do (\w+\s*){1,3})')
-    QUOTE_HDR_REGEX = re.compile(r'(On.*wrote:$)|(Em.*wrote:$)')
-    QUOTED_REGEX = re.compile(r'(>+)')
-    HEADER_REGEX = re.compile(r'^\*?(From|Sent|To|Subject):\*? .+|\*?(De|Enviado|Para|Assunto):\*? .+')
-    _MULTI_QUOTE_HDR_REGEX = r'(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)'
-    _PT_MULTI_QUOTE_HDR_REGEX = r'(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)'
-    # MULTI_QUOTE_HDR_REGEX = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL | re.MULTILINE)
-    MULTI_QUOTE_HDR_REGEX = re.compile(r'(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)|(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)', re.DOTALL | re.MULTILINE)
+    SIG_REGEX = re.compile(
+        r"(--|__|-\w)|(^Sent from my (\w+\s*){1,3})|(^Enviado do (\w+\s*){1,3})"
+    )
+    QUOTE_HDR_REGEX = re.compile(
+        r"(On\s((?!\sOn\s).)+wrote:\s*$)|(De\s((?!\sDe\s).)+escreveu:\s*$)|(Em\s((?!\sEm\s).)+escreveu:\s*$)"
+    )
+    QUOTED_REGEX = re.compile(r"(>+)")
+    HEADER_REGEX = re.compile(
+        r"^\*?(From|Sent|To|Subject):\*? .+|\*?(De|Enviado|Para|Assunto):\*? .+"
+    )
+    _MULTI_QUOTE_HDR_REGEX = (
+        r"(\bOn\s((?!\bOn\b).){2,100}wrote:)|(\sEm\s((?!\bEm\b).){2,100}wrote:)"
+    )
+    _PT_MULTI_QUOTE_HDR_REGEX = r"(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)"
+    MULTI_QUOTE_HDR_REGEX = re.compile(
+        r"(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)|(?!Em.*Em\s.+?escreveu:)(Em\s(.+?)escreveu:)",
+        re.DOTALL | re.MULTILINE,
+    )
     MULTI_QUOTE_HDR_REGEX_MULTILINE = re.compile(_MULTI_QUOTE_HDR_REGEX, re.DOTALL)
-    MULTI_QUOTE_HDR_REGEX_MULTILINE_PT = re.compile(_PT_MULTI_QUOTE_HDR_REGEX, re.DOTALL)
+    MULTI_QUOTE_HDR_REGEX_MULTILINE_PT = re.compile(
+        _PT_MULTI_QUOTE_HDR_REGEX, re.DOTALL
+    )
 
     def __init__(self, text):
         self.fragments = []
         self.fragment = None
-        self.text = text.replace('\r\n', '\n')
+        self.text = text.replace("\r\n", "\n")
         self.found_visible = False
 
     def read(self):
-        """ Creates new fragment for each line
-            and labels as a signature, quote, or hidden.
+        """Creates new fragment for each line
+        and labels as a signature, quote, or hidden.
 
-            Returns EmailMessage instance
+        Returns EmailMessage instance
         """
 
         self.found_visible = False
 
         is_multi_quote_header = self.MULTI_QUOTE_HDR_REGEX_MULTILINE.search(self.text)
-        is_multi_quote_header_pt = self.MULTI_QUOTE_HDR_REGEX_MULTILINE_PT.search(self.text)
+        is_multi_quote_header_pt = self.MULTI_QUOTE_HDR_REGEX_MULTILINE_PT.search(
+            self.text
+        )
         if is_multi_quote_header:
-            self.text = self.MULTI_QUOTE_HDR_REGEX.sub(is_multi_quote_header.groups()[0].replace('\n', ''), self.text)
+            self.text = self.MULTI_QUOTE_HDR_REGEX.sub(
+                is_multi_quote_header.groups()[0].replace("\n", ""), self.text
+            )
         elif is_multi_quote_header_pt:
-            self.text = self.MULTI_QUOTE_HDR_REGEX.sub(is_multi_quote_header_pt.groups()[0].replace('\n', ''), self.text)
+            self.text = self.MULTI_QUOTE_HDR_REGEX.sub(
+                is_multi_quote_header_pt.groups()[0].replace("\n", ""), self.text
+            )
 
         # Fix any outlook style replies, with the reply immediately above the signature boundary line
         #   See email_2_2.txt for an example
-        self.text = re.sub('([^\n])(?=\n ?[_-]{7,})', '\\1\n', self.text, re.MULTILINE)
+        self.text = re.sub("([^\n])(?=\n ?[_-]{7,})", "\\1\n", self.text, re.MULTILINE)
 
-        self.lines = self.text.split('\n')
+        self.lines = self.text.split("\n")
         self.lines.reverse()
 
         for line in self.lines:
@@ -87,18 +103,17 @@ class EmailMessage(object):
 
     @property
     def reply(self):
-        """ Captures reply message within email
-        """
+        """Captures reply message within email"""
         reply = []
         for f in self.fragments:
             if not (f.hidden or f.quoted):
                 reply.append(f.content)
-        return '\n'.join(reply)
+        return "\n".join(reply)
 
     def _scan_line(self, line):
-        """ Reviews each line in email message and determines fragment type
+        """Reviews each line in email message and determines fragment type
 
-            line - a row of text from an email message
+        line - a row of text from an email message
         """
         is_quote_header = self.QUOTE_HDR_REGEX.match(line) is not None
         is_quoted = self.QUOTED_REGEX.match(line) is not None
@@ -109,9 +124,10 @@ class EmailMessage(object):
                 self.fragment.signature = True
                 self._finish_fragment()
 
-        if self.fragment \
-                and ((self.fragment.headers == is_header and self.fragment.quoted == is_quoted) or
-                         (self.fragment.quoted and (is_quote_header or len(line.strip()) == 0))):
+        if self.fragment and (
+            (self.fragment.headers == is_header and self.fragment.quoted == is_quoted)
+            or (self.fragment.quoted and (is_quote_header or len(line.strip()) == 0))
+        ):
 
             self.fragment.lines.append(line)
         else:
@@ -119,17 +135,16 @@ class EmailMessage(object):
             self.fragment = Fragment(is_quoted, line, headers=is_header)
 
     def quote_header(self, line):
-        """ Determines whether line is part of a quoted area
+        """Determines whether line is part of a quoted area
 
-            line - a row of the email message
+        line - a row of the email message
 
-            Returns True or False
+        Returns True or False
         """
         return self.QUOTE_HDR_REGEX.match(line[::-1]) is not None
 
     def _finish_fragment(self):
-        """ Creates fragment
-        """
+        """Creates fragment"""
 
         if self.fragment:
             self.fragment.finish()
@@ -140,10 +155,12 @@ class EmailMessage(object):
                 for f in self.fragments:
                     f.hidden = True
             if not self.found_visible:
-                if self.fragment.quoted \
-                        or self.fragment.headers \
-                        or self.fragment.signature \
-                        or (len(self.fragment.content.strip()) == 0):
+                if (
+                    self.fragment.quoted
+                    or self.fragment.headers
+                    or self.fragment.signature
+                    or (len(self.fragment.content.strip()) == 0)
+                ):
 
                     self.fragment.hidden = True
                 else:
@@ -153,8 +170,8 @@ class EmailMessage(object):
 
 
 class Fragment(object):
-    """ A Fragment is a part of
-        an Email Message, labeling each part.
+    """A Fragment is a part of
+    an Email Message, labeling each part.
     """
 
     def __init__(self, quoted, first_line, headers=False):
@@ -166,11 +183,11 @@ class Fragment(object):
         self.lines = [first_line]
 
     def finish(self):
-        """ Creates block of content with lines
-            belonging to fragment.
+        """Creates block of content with lines
+        belonging to fragment.
         """
         self.lines.reverse()
-        self._content = '\n'.join(self.lines)
+        self._content = "\n".join(self.lines)
         self.lines = None
 
     @property
